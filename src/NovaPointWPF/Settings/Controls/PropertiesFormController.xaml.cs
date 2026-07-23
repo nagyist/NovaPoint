@@ -141,10 +141,23 @@ namespace NovaPointWPF.Settings.Controls
 
         }
 
-        private void DeleteClick(object sender, RoutedEventArgs e)
+        private async void DeleteClick(object sender, RoutedEventArgs e)
         {
-            _removeElement.Invoke(this, EventArgs.Empty);
-            _appConfig.RemoveApp(_propertiesForm.Properties);
+            ButtonDelete.IsEnabled = false;
+            try
+            {
+                await Task.Run(() => _appConfig.RemoveApp(_propertiesForm.Properties));
+                _removeElement.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                TextBlockErrorNotification.Text = ex.Message;
+                TextBlockErrorNotification.Visibility = Visibility.Visible;
+            }
+            finally
+            {
+                ButtonDelete.IsEnabled = true;
+            }
         }
     }
 }

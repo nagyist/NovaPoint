@@ -74,10 +74,23 @@ namespace NovaPointLibrary.Core.Settings
             throw new ArgumentException("App properties is neither public nor confidential.", nameof(clientProperties));
         }
 
-        public void RemoveApp(IAppClientProperties clientProperties)
+        public async Task RemoveApp(IAppClientProperties clientProperties)
         {
-            if (clientProperties is AppClientConfidentialProperties confidentialProperties) { ListAppClientConfidentialProperties.RemoveAll(p => p.Id == confidentialProperties.Id); }
-            else if (clientProperties is AppClientPublicProperties publicProperties) { ListAppClientPublicProperties.RemoveAll(p => p.Id == publicProperties.Id); }
+            if (clientProperties is AppClientConfidentialProperties confidentialProperties)
+            {
+                ListAppClientConfidentialProperties.RemoveAll(p => p.Id == confidentialProperties.Id);
+            }
+            else if (clientProperties is AppClientPublicProperties publicProperties)
+            {
+                ListAppClientPublicProperties.RemoveAll(p => p.Id == publicProperties.Id);
+
+                // Clear the token cache for the removed app, unless another saved app still uses the same ClientId.
+                bool clientIdStillInUse = ListAppClientPublicProperties.Any(p => p.ClientId == publicProperties.ClientId);
+                if (!clientIdStillInUse)
+                {
+                    await TokenCacheHelper.RemoveCache(new[] { publicProperties.ClientId });
+                }
+            }
             SaveSettings();
         }
 
