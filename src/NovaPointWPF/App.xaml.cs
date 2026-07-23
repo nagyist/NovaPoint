@@ -1,9 +1,9 @@
-﻿using NovaPointLibrary.Core.Settings;
+﻿using NovaPointLibrary.Core.Logging;
+using NovaPointLibrary.Core.Settings;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -21,6 +21,26 @@ namespace NovaPointWPF
             DispatcherUnhandledException += App_DispatcherUnhandledException;
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+        }
+
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+
+            // Off the UI thread and after the window is up; a recursive delete of legacy data can take
+            // seconds and nothing in the app reads what is being removed.
+            Task.Run(() =>
+            {
+                try
+                {
+                    AppFolders.CleanUpLegacyFolders();
+                }
+                catch (Exception ex)
+                {
+                    // A failed clean up is not user actionable, so it is logged instead of shown.
+                    LogCrash.WriteCrashLog(ex, "CleanUp");
+                }
+            });
         }
 
         private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
@@ -42,31 +62,13 @@ namespace NovaPointWPF
 
         private static void LogAndShow(Exception ex)
         {
-            string logFile = WriteCrashLog(ex);
+            string logFile = LogCrash.WriteCrashLog(ex, "WPFCrash");
 
             MessageBox.Show(
                 $"An unexpected error occurred and has been logged.\n\n{ex.GetType().Name}: {ex.Message}\n\nLog file: {logFile}",
                 "NovaPoint - Unexpected error",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
-        }
-
-        private static string WriteCrashLog(Exception ex)
-        {
-            string folder = Path.Combine(AppFolders.GetOutputFolder(), "CrashReport");
-            string logFile = Path.Combine(folder, $"{DateTime.Now:yyMMddHHmmss}WPFCrash.Log");
-
-            try
-            {
-                Directory.CreateDirectory(folder);
-                File.AppendAllText(logFile, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {ex}{Environment.NewLine}{Environment.NewLine}");
-            }
-            catch
-            {
-                // Best-effort logging only; a failure here should not throw again.
-            }
-
-            return logFile;
         }
     }
 }

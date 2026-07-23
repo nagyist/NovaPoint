@@ -1,4 +1,5 @@
 using NovaPointLibrary.Commands.Authentication;
+using NovaPointLibrary.Core.Logging;
 
 namespace NovaPointLibrary.Core.Settings
 {
@@ -44,11 +45,15 @@ namespace NovaPointLibrary.Core.Settings
             return Path.Combine(docs, AppName);
         }
 
-        // To be triggered from UI
+        // Triggered on app startup; see App.OnStartup in NovaPointWPF.
         public static void CleanUpLegacyFolders()
         {
+            // First because RemoveLegacyData can throw on a locked folder, which would skip whatever follows.
+            // Crash logs live under the output folder, so this is independent of the steps below.
+            LogCrash.RemoveLegacyCrashLogs();
+
             TokenCacheHelper.RemoveLegacyCaches();
-            
+
             RemoveLegacyData();
         }
         
