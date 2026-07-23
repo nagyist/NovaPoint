@@ -1,33 +1,32 @@
+using NovaPointLibrary.Commands.Authentication;
+
 namespace NovaPointLibrary.Core.Settings
 {
     public static class AppFolders
     {
         private const string AppName = "NovaPoint";
 
-        // Windows: %LOCALAPPDATA%\NovaPoint
-        // macOS/Linux: ~/.local/share/NovaPoint
+        // Windows: %LOCALAPPDATA%\NovaPoint\config
+        // macOS/Linux: ~/.local/share/NovaPoint/config
         public static string GetConfigFolder()
         {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                AppName);
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),AppName, "config");
         }
 
-        // Windows: %LOCALAPPDATA%\NovaPoint
+        // Windows: %LOCALAPPDATA%\NovaPoint\cache
         // macOS/Linux: $XDG_CACHE_HOME/NovaPoint  (falls back to ~/.cache/NovaPoint)
         public static string GetCacheFolder()
         {
-            string baseCache;
             if (OperatingSystem.IsWindows())
             {
-                baseCache = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName, "cache");
             }
             else
             {
-                baseCache = Environment.GetEnvironmentVariable("XDG_CACHE_HOME")
+                string baseCache = Environment.GetEnvironmentVariable("XDG_CACHE_HOME")
                             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache");
+                return Path.Combine(baseCache, AppName);
             }
-            return Path.Combine(baseCache, AppName);
         }
 
         // Windows/macOS: ~/Documents/NovaPoint
@@ -43,6 +42,37 @@ namespace NovaPointLibrary.Core.Settings
                     "Documents");
             }
             return Path.Combine(docs, AppName);
+        }
+
+        // To be triggered from UI
+        public static void CleanUpLegacyFolders()
+        {
+            TokenCacheHelper.RemoveLegacyCaches();
+            
+            RemoveLegacyData();
+        }
+        
+        private static void RemoveLegacyData()
+        {
+            string localAppPathFolderData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),AppName);
+
+            if (!System.IO.Directory.Exists(localAppPathFolderData)) { return; }
+
+            string cacheFolder = GetCacheFolder();
+            string configFolder = GetConfigFolder();
+
+            foreach (var folderPath in System.IO.Directory.GetDirectories(localAppPathFolderData))
+            {
+                // OrdinalIgnoreCase so a casing difference between the on-disk folder name and the
+                // expected path doesn't cause the cache/config folder to be treated as legacy and deleted.
+                if (String.Equals(folderPath, cacheFolder, StringComparison.OrdinalIgnoreCase)) { continue; }
+                if (String.Equals(folderPath, configFolder, StringComparison.OrdinalIgnoreCase)) { continue; }
+
+                if (System.IO.Directory.Exists(folderPath))
+                {
+                    System.IO.Directory.Delete(folderPath, recursive: true);
+                }
+            }
         }
     }
 }

@@ -2,14 +2,19 @@
 using Microsoft.Identity.Client.Extensions.Msal;
 using NovaPointLibrary.Core.Logging;
 using NovaPointLibrary.Core.Settings;
+using System.Text.RegularExpressions;
 
 namespace NovaPointLibrary.Commands.Authentication
 {
     internal class TokenCacheHelper
     {
         private static readonly int s_version = 1;
+        
+        // Matches the per-version cache subfolder names (e.g. "V1"); group 1 is the version number.
+        private static readonly Regex s_cacheVersionFolderRegex = new(@"^V(\d+)$");
 
-        private static readonly string s_cacheFilePath = Path.Combine(AppFolders.GetCacheFolder(),$"msal{s_version}", "msal.cache");
+        private static readonly string s_msalFolder = Path.Combine(AppFolders.GetCacheFolder(), "msal");
+        private static readonly string s_cacheFilePath = Path.Combine(s_msalFolder, $"V{s_version}", "msal.cache");
 
         private static readonly string s_cacheFileName = Path.GetFileName(s_cacheFilePath);
         private static readonly string? s_cacheDir = Path.GetDirectoryName(s_cacheFilePath);
@@ -83,6 +88,32 @@ namespace NovaPointLibrary.Commands.Authentication
             {
                 logger?.Info(nameof(TokenCacheHelper),
                     $"WARNING: could not clear token cache. {ex.Message}");
+            }
+        }
+        
+        
+        internal static void RemoveLegacyCaches(ILogger? logger = null)
+        {
+            try
+            {
+                if (!System.IO.Directory.Exists(s_msalFolder)) { return; }
+
+                foreach (var folderPath in System.IO.Directory.GetDirectories(s_msalFolder))
+                {
+                    var match = s_cacheVersionFolderRegex.Match(Path.GetFileName(folderPath));
+                    if (!match.Success) { continue; }
+
+                    if (int.TryParse(match.Groups[1].Value, out int version) && version < s_version)
+                    {
+                        System.IO.Directory.Delete(folderPath, recursive: true);
+                        logger?.Info(nameof(TokenCacheHelper), $"Removed stale MSAL cache '{folderPath}'.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger?.Info(nameof(TokenCacheHelper),
+                    $"WARNING: could not remove stale token cache(s). {ex.Message}");
             }
         }
     }

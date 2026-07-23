@@ -14,7 +14,12 @@ namespace NovaPointLibrary.Core.SQLite
         {
             get
             {
-                string bdPath = Path.Combine(AppConfig.GetLocalAppPath(), "solutioncache.db");
+                string dbFolder = Path.Combine(AppFolders.GetCacheFolder(), "sqlite");
+                // Ensure the folder exists.
+                System.IO.Directory.CreateDirectory(dbFolder);
+
+                string bdPath = Path.Combine(dbFolder, "solutioncache.db");
+
                 return $"Data Source={bdPath};";
             }
         }

@@ -1,53 +1,36 @@
 ﻿using Newtonsoft.Json;
 using NovaPointLibrary.Commands.Authentication;
-using NovaPointLibrary.Commands.Utilities;
 using NovaPointLibrary.Core.Authentication;
+using NovaPointLibrary.Core.Logging;
 
 
 namespace NovaPointLibrary.Core.Settings
 {
     public class AppConfig
     {
-        private static readonly string _NpLocalAppFolder = AppFolders.GetConfigFolder();
-
+        private static readonly string s_configFilePath = Path.Combine(AppFolders.GetConfigFolder(), "user.config");
+        private static readonly string? s_configDir = Path.GetDirectoryName(s_configFilePath);
+        
         public List<AppClientConfidentialProperties> ListAppClientConfidentialProperties { get; set; } = [];
         public List<AppClientPublicProperties> ListAppClientPublicProperties { get; set; } = [];
 
         internal AppConfig() { }
 
-        internal static string GetLocalAppPath()
-        {
-            string localAppPath = Path.Combine(_NpLocalAppFolder, VersionControl.GetVersion());
-            System.IO.Directory.CreateDirectory(localAppPath);
-
-            return localAppPath;
-        }
-
-        private static string GetSettingsPath()
-        {
-            string settingsFile = Path.Combine(GetLocalAppPath(), "user.config");
-            return settingsFile;
-        }
-
         public static AppConfig GetSettings()
         {
             AppConfig appSettings;
 
-            AppConfig.RemoveLegacyData();
-
-            string settingsFile = GetSettingsPath();
-
-            if (File.Exists(settingsFile))
+            if (File.Exists(s_configFilePath))
             {
                 try
                 {
-                    string json = File.ReadAllText(settingsFile);
+                    string json = File.ReadAllText(s_configFilePath);
                     appSettings = JsonConvert.DeserializeObject<AppConfig>(json) ?? throw new InvalidOperationException("Failed to deserialize JSON.");
                 }
                 catch (Exception ex)
                 {
                     // The file exists but couldn't be read/parsed. Preserve the original and record why.
-                    BackupCorruptSettings(settingsFile, ex);
+                    BackupCorruptSettings(s_configFilePath, ex);
                     appSettings = new();
                 }
 
@@ -60,22 +43,19 @@ namespace NovaPointLibrary.Core.Settings
             return appSettings;
         }
 
-        private static void BackupCorruptSettings(string settingsFile, Exception ex)
+        private static void BackupCorruptSettings(string configFile, Exception ex)
         {
             try
             {
                 string timestamp = DateTime.Now.ToString("yyMMddHHmmss");
+                string backupFile = $"{configFile}.corrupt-{timestamp}";
+                File.Copy(configFile, backupFile, overwrite: true);
 
-                string backupFile = $"{settingsFile}.corrupt-{timestamp}";
-                File.Copy(settingsFile, backupFile, overwrite: true);
-
-                string logFile = Path.Combine(GetLocalAppPath(), "config-load-errors.log");
-                string logLine = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Failed to load '{settingsFile}'; backed up to '{backupFile}'. {ex.GetType().Name}: {ex.Message}{Environment.NewLine}";
-                File.AppendAllText(logFile, logLine);
+                LogCrash.WriteCrashLog(ex, "Config");
             }
             catch
             {
-                // Best-effort diagnostics.
+                // Best-effort logging only; a failure here should not throw again.
             }
         }
 
@@ -145,8 +125,11 @@ namespace NovaPointLibrary.Core.Settings
         {
             var json = JsonConvert.SerializeObject(this, Formatting.Indented);
 
+            // Ensure folder exists.
+            System.IO.Directory.CreateDirectory(s_configDir!);
+
             // Write to a sibling temp file, then atomically replace the real file.
-            string settingsFile = GetSettingsPath();
+            string settingsFile = s_configFilePath;
             string tempFile = settingsFile + ".tmp";
 
             File.WriteAllText(tempFile, json);
@@ -159,21 +142,5 @@ namespace NovaPointLibrary.Core.Settings
             await TokenCacheHelper.RemoveCache(clientIds);
         }
 
-        private static void RemoveLegacyData()
-        {
-            string localAppPathFolderData = GetLocalAppPath();
-
-            var msalcache = Path.Combine(AppFolders.GetConfigFolder(), $"msal1");
-
-            string[] localAppPathFolders = System.IO.Directory.GetDirectories(_NpLocalAppFolder);
-            foreach (var folderPath in localAppPathFolders)
-            {
-                if (!String.Equals(localAppPathFolderData, folderPath) && System.IO.Directory.Exists(folderPath))
-                {
-                    if (String.Equals(msalcache, folderPath)) { continue; }
-                    System.IO.Directory.Delete(folderPath, recursive: true);
-                }
-            }
-        }
     }
 }
