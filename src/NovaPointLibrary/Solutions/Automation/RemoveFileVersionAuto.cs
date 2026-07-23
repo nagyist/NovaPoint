@@ -34,10 +34,6 @@ namespace NovaPointLibrary.Solutions.Automation
             _ctx = context;
 
             parameters.ItemsParam.FileExpressions = _fileExpressions;
-            parameters.ListsParam.IncludeLibraries = true;
-            parameters.ListsParam.IncludeLists = false;
-            parameters.ListsParam.IncludeHiddenLists = false;
-            parameters.ListsParam.IncludeSystemLists = false;
             _param = parameters;
 
             Dictionary<Type, string> solutionReports = new()
@@ -311,6 +307,12 @@ namespace NovaPointLibrary.Solutions.Automation
             SiteParam = siteParam;
             ListsParam = listsParam;
             ItemsParam = itemsParam;
+
+            // This automation only operates on document libraries.
+            ListsParam.IncludeLibraries = true;
+            ListsParam.IncludeLists = false;
+            ListsParam.IncludeHiddenLists = false;
+            ListsParam.IncludeSystemLists = false;
         }
     }
 }

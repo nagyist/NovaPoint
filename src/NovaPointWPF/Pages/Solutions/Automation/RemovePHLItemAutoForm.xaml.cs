@@ -53,7 +53,7 @@ namespace NovaPointWPF.Pages.Solutions.Automation
         public ISolutionParameters GetParameters()
         {
             RemovePHLItemAutoParameters parameters = new(PHLForm.Parameters, AdminF.Parameters,
-                SiteF.Parameters, new(), new())
+                SiteF.Parameters)
             {
                 Recycle = this.Recycle,
             };

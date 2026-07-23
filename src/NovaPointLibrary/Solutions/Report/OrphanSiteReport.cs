@@ -51,9 +51,6 @@ namespace NovaPointLibrary.Solutions.Report
         {
             _ctx.AppClient.IsCancelled();
 
-            _param.SiteParam.IncludePersonalSite = false;
-            _param.SiteParam.IncludeSubsites = false;
-
             await foreach (var siteRecord in new SPOTenantSiteUrlsCSOM(_ctx.Logger, _ctx.AppClient, _param.SiteParam).GetAsync())
             {
                 _ctx.AppClient.IsCancelled();
@@ -193,6 +190,10 @@ namespace NovaPointLibrary.Solutions.Report
         public OrphanSiteReportParameters(SPOTenantSiteUrlsParameters siteParam)
         {
             SiteParam = siteParam;
+
+            // Orphaned-owner detection is only meaningful for site collections.
+            SiteParam.IncludePersonalSite = false;
+            SiteParam.IncludeSubsites = false;
         }
     }
 

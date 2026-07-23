@@ -31,7 +31,7 @@ namespace NovaPointWPF.Pages.Solutions.Report
 
         public ISolutionParameters GetParameters()
         {
-            PHLItemReportParameters parameters = new(PHLForm.Parameters, AdminF.Parameters, SiteF.Parameters, new(), new());
+            PHLItemReportParameters parameters = new(PHLForm.Parameters, AdminF.Parameters, SiteF.Parameters);
             return parameters;
         }
 

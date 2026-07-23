@@ -40,10 +40,6 @@ namespace NovaPointLibrary.Solutions.Automation
             _ctx = context;
 
             parameters.ItemsParam.FileExpressions = _fileExpressions;
-            parameters.ListsParam.IncludeLibraries = true;
-            parameters.ListsParam.IncludeLists = false;
-            parameters.ListsParam.IncludeHiddenLists = false;
-            parameters.ListsParam.IncludeSystemLists = false;
             _param = parameters;
 
             if (_param.CheckingType == "Major") { _checkingType = CheckinType.MajorCheckIn; }
@@ -221,6 +217,12 @@ namespace NovaPointLibrary.Solutions.Automation
 
             ListsParam = listsParam;
             ItemsParam = itemsParameters;
+
+            // This automation only operates on document libraries.
+            ListsParam.IncludeLibraries = true;
+            ListsParam.IncludeLists = false;
+            ListsParam.IncludeHiddenLists = false;
+            ListsParam.IncludeSystemLists = false;
         }
     }
 }

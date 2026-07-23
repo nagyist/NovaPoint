@@ -44,10 +44,6 @@ namespace NovaPointLibrary.Solutions.Automation
         {
             _ctx = context;
 
-            parameters.ListsParam.AllLists = false;
-            parameters.ListsParam.IncludeLists = false;
-            parameters.ListsParam.IncludeLibraries = false;
-            parameters.ListsParam.ListTitle = "Preservation Hold Library";
             parameters.ItemsParam.FileExpressions = _fileExpressions;
             _param = parameters;
         }
@@ -249,6 +245,12 @@ namespace NovaPointLibrary.Solutions.Automation
             PHLParam = phlParam;
             AdminAccess = adminAccess;
             SiteParam = siteParam;
+
+            // This automation only ever reads the Preservation Hold Library.
+            ListsParam.AllLists = false;
+            ListsParam.IncludeLists = false;
+            ListsParam.IncludeLibraries = false;
+            ListsParam.ListTitle = "Preservation Hold Library";
         }
 
         public void ParametersCheck()

@@ -47,10 +47,6 @@ namespace NovaPointLibrary.Solutions.Report
         {
             _ctx = context;
 
-            parameters.ListsParam.AllLists = false;
-            parameters.ListsParam.IncludeLists = false;
-            parameters.ListsParam.IncludeLibraries = false;
-            parameters.ListsParam.ListTitle = "Preservation Hold Library";
             parameters.ItemsParam.FileExpressions = _fileExpressions;
             _param = parameters;
         }
@@ -159,24 +155,26 @@ namespace NovaPointLibrary.Solutions.Report
                 return new(AdminAccess, SiteParam);
             }
         }
-        internal SPOListsParameters ListsParam { get; set; }
-        internal SPOItemsParameters ItemsParam { get; set; }
+        internal readonly SPOListsParameters ListsParam = new();
+        internal readonly SPOItemsParameters ItemsParam = new();
         public SPOTenantItemsParameters TItemsParam
         {
             get { return new(SiteAccParam, ListsParam, ItemsParam); }
         }
 
         public PHLItemReportParameters(SPOPreservationHoldLibraryParameters phlParam,
-                                       SPOAdminAccessParameters adminAccess, 
-                                       SPOTenantSiteUrlsParameters siteParam,
-                                       SPOListsParameters listsParam,
-                                       SPOItemsParameters itemsParam)
+                                       SPOAdminAccessParameters adminAccess,
+                                       SPOTenantSiteUrlsParameters siteParam)
         {
             PHLParam = phlParam;
             AdminAccess = adminAccess;
             SiteParam = siteParam;
-            ListsParam = listsParam;
-            ItemsParam = itemsParam;
+
+            // This report only ever reads the Preservation Hold Library.
+            ListsParam.AllLists = false;
+            ListsParam.IncludeLists = false;
+            ListsParam.IncludeLibraries = false;
+            ListsParam.ListTitle = "Preservation Hold Library";
         }
     }
 }

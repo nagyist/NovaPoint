@@ -45,10 +45,6 @@ namespace NovaPointLibrary.Solutions.Automation
         {
             _ctx = context;
 
-            parameters.ListsParam.AllLists = false;
-            parameters.ListsParam.IncludeLists = false;
-            parameters.ListsParam.IncludeLibraries = false;
-            parameters.ListsParam.ListTitle = "Preservation Hold Library";
             parameters.ItemsParam.FileExpressions = _fileExpressions;
             _param = parameters;
         }
@@ -154,8 +150,8 @@ namespace NovaPointLibrary.Solutions.Automation
                 return new(AdminAccess, SiteParam);
             }
         }
-        internal SPOListsParameters ListsParam { get; set; }
-        internal SPOItemsParameters ItemsParam { get; set; }
+        internal readonly SPOListsParameters ListsParam = new();
+        internal readonly SPOItemsParameters ItemsParam = new();
         public SPOTenantItemsParameters TItemsParam
         {
             get { return new(SiteAccParam, ListsParam, ItemsParam); }
@@ -163,15 +159,17 @@ namespace NovaPointLibrary.Solutions.Automation
 
         public RemovePHLItemAutoParameters(SPOPreservationHoldLibraryParameters phlParam,
                                            SPOAdminAccessParameters adminAccess,
-                                           SPOTenantSiteUrlsParameters siteParam,
-                                           SPOListsParameters listsParam,
-                                           SPOItemsParameters itemsParam)
+                                           SPOTenantSiteUrlsParameters siteParam)
         {
             PHLParam = phlParam;
             AdminAccess = adminAccess;
             SiteParam = siteParam;
-            ListsParam = listsParam;
-            ItemsParam = itemsParam;
+
+            // This automation only ever reads the Preservation Hold Library.
+            ListsParam.AllLists = false;
+            ListsParam.IncludeLists = false;
+            ListsParam.IncludeLibraries = false;
+            ListsParam.ListTitle = "Preservation Hold Library";
         }
     }
 }
