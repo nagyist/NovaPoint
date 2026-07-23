@@ -62,16 +62,16 @@ namespace NovaPointLibrary.Core.Settings
         {
             if (clientProperties is AppClientConfidentialProperties confidentialProperties)
             {
-                int index = ListAppClientConfidentialProperties.FindIndex(p => p.Id == confidentialProperties.Id);
-                return ListAppClientConfidentialProperties[index];
+                return ListAppClientConfidentialProperties.Find(p => p.Id == confidentialProperties.Id)
+                    ?? throw new InvalidOperationException($"Confidential app (Id '{confidentialProperties.Id}', ClientId '{confidentialProperties.ClientId}') does not exist in settings.");
             }
 
             else if (clientProperties is AppClientPublicProperties publicProperties)
             {
-                int index = ListAppClientPublicProperties.FindIndex(p => p.Id == publicProperties.Id);
-                return ListAppClientPublicProperties[index];
+                return ListAppClientPublicProperties.Find(p => p.Id == publicProperties.Id)
+                    ?? throw new InvalidOperationException($"Public app (Id '{publicProperties.Id}', ClientId '{publicProperties.ClientId}') does not exist in settings.");
             }
-            return new AppClientPublicProperties();
+            throw new ArgumentException("App properties is neither public nor confidential.", nameof(clientProperties));
         }
 
         public void RemoveApp(IAppClientProperties clientProperties)
