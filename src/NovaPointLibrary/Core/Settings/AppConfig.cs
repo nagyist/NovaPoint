@@ -46,8 +46,7 @@ namespace NovaPointLibrary.Core.Settings
                 }
                 catch (Exception ex)
                 {
-                    // The file exists but couldn't be read/parsed. Preserve the original bytes
-                    // before the app can overwrite them, and record why, so the user can recover.
+                    // The file exists but couldn't be read/parsed. Preserve the original and record why.
                     BackupCorruptSettings(settingsFile, ex);
                     appSettings = new();
                 }
@@ -145,7 +144,13 @@ namespace NovaPointLibrary.Core.Settings
         private void SaveSettings()
         {
             var json = JsonConvert.SerializeObject(this, Formatting.Indented);
-            File.WriteAllText(GetSettingsPath(), json);
+
+            // Write to a sibling temp file, then atomically replace the real file.
+            string settingsFile = GetSettingsPath();
+            string tempFile = settingsFile + ".tmp";
+
+            File.WriteAllText(tempFile, json);
+            File.Move(tempFile, settingsFile, overwrite: true);
         }
 
         public static async Task RemoveTokenCache()
