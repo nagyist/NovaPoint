@@ -1,4 +1,5 @@
-﻿using Microsoft.Identity.Client.Extensions.Msal;
+﻿using Microsoft.Identity.Client;
+using Microsoft.Identity.Client.Extensions.Msal;
 using NovaPointLibrary.Core.Logging;
 using NovaPointLibrary.Core.Settings;
 
@@ -8,7 +9,7 @@ namespace NovaPointLibrary.Commands.Authentication
     {
         private static readonly int s_version = 1;
 
-        private static readonly string s_cacheFilePath = Path.Combine(AppFolders.GetConfigFolder(),$"msal{s_version}", "msal.cache");
+        private static readonly string s_cacheFilePath = Path.Combine(AppFolders.GetCacheFolder(),$"msal{s_version}", "msal.cache");
 
         private static readonly string s_cacheFileName = Path.GetFileName(s_cacheFilePath);
         private static readonly string? s_cacheDir = Path.GetDirectoryName(s_cacheFilePath);
@@ -55,9 +56,34 @@ namespace NovaPointLibrary.Commands.Authentication
             return cacheHelper;
         }
 
-        internal static void RemoveCache()
+        internal static async Task RemoveCache(IEnumerable<Guid> clientIds, ILogger? logger = null)
         {
-            File.Delete(s_cacheFilePath);
+            try
+            {
+                var cacheHelper = await GetCache(logger);
+                if (cacheHelper is null)
+                {
+                    // Persistence unavailable -> nothing was ever persisted; nothing to clear.
+                    return;
+                }
+
+                foreach (var clientId in clientIds.Distinct())
+                {
+                    var app = PublicClientApplicationBuilder.Create(clientId.ToString()).Build();
+                    cacheHelper.RegisterCache(app.UserTokenCache);
+
+                    var accounts = await app.GetAccountsAsync();
+                    foreach (var account in accounts)
+                    {
+                        await app.RemoveAsync(account);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger?.Info(nameof(TokenCacheHelper),
+                    $"WARNING: could not clear token cache. {ex.Message}");
+            }
         }
     }
 }

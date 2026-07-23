@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Animation;
@@ -73,11 +74,20 @@ namespace NovaPointWPF.Settings
             }
         }
 
-        private void DeleteCacheClick(object sender, RoutedEventArgs e)
+        private async void DeleteCacheClick(object sender, RoutedEventArgs e)
         {
-            AppConfig.RemoveTokenCache();
+            var button = sender as Button;
+            if (button != null) { button.IsEnabled = false; }
 
-            TriggerNotification("Cache deleted");
+            try
+            {
+                await Task.Run(() => AppConfig.RemoveTokenCache());
+                TriggerNotification("Cache deleted");
+            }
+            finally
+            {
+                if (button != null) { button.IsEnabled = true; }
+            }
         }
 
         private void UpdateClick(object sender, RoutedEventArgs e)

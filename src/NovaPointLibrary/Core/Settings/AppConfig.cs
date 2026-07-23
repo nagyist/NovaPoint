@@ -108,9 +108,10 @@ namespace NovaPointLibrary.Core.Settings
             File.WriteAllText(GetSettingsPath(), json);
         }
 
-        public static void RemoveTokenCache()
+        public static async Task RemoveTokenCache()
         {
-            TokenCacheHelper.RemoveCache();
+            var clientIds = GetSettings().ListAppClientPublicProperties.Select(p => p.ClientId);
+            await TokenCacheHelper.RemoveCache(clientIds);
         }
 
         private static void RemoveLegacyData()
