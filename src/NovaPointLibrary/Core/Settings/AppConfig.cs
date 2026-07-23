@@ -44,8 +44,11 @@ namespace NovaPointLibrary.Core.Settings
                     string json = File.ReadAllText(settingsFile);
                     appSettings = JsonConvert.DeserializeObject<AppConfig>(json) ?? throw new InvalidOperationException("Failed to deserialize JSON.");
                 }
-                catch
+                catch (Exception ex)
                 {
+                    // The file exists but couldn't be read/parsed. Preserve the original bytes
+                    // before the app can overwrite them, and record why, so the user can recover.
+                    BackupCorruptSettings(settingsFile, ex);
                     appSettings = new();
                 }
 
@@ -56,6 +59,25 @@ namespace NovaPointLibrary.Core.Settings
             }
 
             return appSettings;
+        }
+
+        private static void BackupCorruptSettings(string settingsFile, Exception ex)
+        {
+            try
+            {
+                string timestamp = DateTime.Now.ToString("yyMMddHHmmss");
+
+                string backupFile = $"{settingsFile}.corrupt-{timestamp}";
+                File.Copy(settingsFile, backupFile, overwrite: true);
+
+                string logFile = Path.Combine(GetLocalAppPath(), "config-load-errors.log");
+                string logLine = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Failed to load '{settingsFile}'; backed up to '{backupFile}'. {ex.GetType().Name}: {ex.Message}{Environment.NewLine}";
+                File.AppendAllText(logFile, logLine);
+            }
+            catch
+            {
+                // Best-effort diagnostics.
+            }
         }
 
         public IAppClientProperties GetOriginalSettings(IAppClientProperties clientProperties)
