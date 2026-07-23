@@ -3,6 +3,7 @@ using Microsoft.Identity.Client;
 using NovaPointLibrary.Core.Authentication;
 using NovaPointLibrary.Core.Settings;
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -95,17 +96,22 @@ namespace NovaPointWPF.Settings.Controls
             EnableForm();
         }
 
-        private void SaveClick(object sender, RoutedEventArgs e)
+        private async void SaveClick(object sender, RoutedEventArgs e)
         {
+            ButtonSave.IsEnabled = false;
             try
             {
-                _appConfig.SaveSettings(_propertiesForm.Properties);
+                await Task.Run(() => _appConfig.SaveSettings(_propertiesForm.Properties));
                 DisableForm();
             }
             catch (Exception ex)
             {
                 TextBlockErrorNotification.Text = ex.Message;
                 TextBlockErrorNotification.Visibility = Visibility.Visible;
+            }
+            finally
+            {
+                ButtonSave.IsEnabled = true;
             }
         }
 

@@ -81,10 +81,10 @@ namespace NovaPointLibrary.Core.Settings
             SaveSettings();
         }
 
-        public void SaveSettings(IAppClientProperties clientProperties)
+        public async Task SaveSettings(IAppClientProperties clientProperties)
         {
             clientProperties.ValidateProperties();
-            
+
             if (clientProperties is AppClientConfidentialProperties confidentialProperties)
             {
                 int index = ListAppClientConfidentialProperties.FindIndex(p => p.Id == confidentialProperties.Id);
@@ -97,6 +97,11 @@ namespace NovaPointLibrary.Core.Settings
                 int index = ListAppClientPublicProperties.FindIndex(p => p.Id == publicProperties.Id);
                 if (index != -1) { ListAppClientPublicProperties[index] = publicProperties.Clone(); }
                 else { ListAppClientPublicProperties.Add(publicProperties); }
+
+                if (!publicProperties.CachingToken)
+                {
+                    await TokenCacheHelper.RemoveCache(new[] { publicProperties.ClientId });
+                }
             }
 
             SaveSettings();
