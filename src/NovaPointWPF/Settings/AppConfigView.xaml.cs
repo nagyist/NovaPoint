@@ -31,7 +31,7 @@ namespace NovaPointWPF.Settings
 
             foreach (IAppClientProperties client in appProperties)
             {
-                SettingsPanel.Children.Add(new PropertiesFormController(client, _appConfig, RemovePropertiesForm));
+                SettingsPanel.Children.Add(new PropertiesFormController(client, _appConfig, RemovePropertiesForm, isSaved: true));
             }
         }
 
@@ -47,7 +47,7 @@ namespace NovaPointWPF.Settings
 
         private void AddNewAppClientForm(IAppClientProperties properties)
         {
-            PropertiesFormController formController = new PropertiesFormController(properties, _appConfig, RemovePropertiesForm);
+            PropertiesFormController formController = new PropertiesFormController(properties, _appConfig, RemovePropertiesForm, isSaved: false);
             formController.EnableForm();
             SettingsPanel.Children.Insert(0, formController);
         }

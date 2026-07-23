@@ -16,8 +16,9 @@ namespace NovaPointWPF.Settings.Controls
         private IPropertiesForm _propertiesForm;
         private readonly AppConfig _appConfig;
         private readonly EventHandler _removeElement;
+        private bool _isSaved;
 
-        public PropertiesFormController(IAppClientProperties properties, AppConfig appConfig, EventHandler removeElement)
+        public PropertiesFormController(IAppClientProperties properties, AppConfig appConfig, EventHandler removeElement, bool isSaved)
         {
             InitializeComponent();
 
@@ -40,6 +41,7 @@ namespace NovaPointWPF.Settings.Controls
             _propertiesForm = AddChildrenForm(properties);
             _appConfig = appConfig;
             _removeElement = removeElement;
+            _isSaved = isSaved;
         }
 
         private IPropertiesForm AddChildrenForm(IAppClientProperties properties)
@@ -102,6 +104,7 @@ namespace NovaPointWPF.Settings.Controls
             try
             {
                 await Task.Run(() => _appConfig.SaveSettings(_propertiesForm.Properties));
+                _isSaved = true;
                 DisableForm();
             }
             catch (Exception ex)
@@ -117,6 +120,12 @@ namespace NovaPointWPF.Settings.Controls
 
         private void CancelClick(object sender, RoutedEventArgs e)
         {
+            if (!_isSaved)
+            {
+                _removeElement.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
             try
             {
                 GridPropertiesForm.Children.Clear();
