@@ -44,6 +44,8 @@ namespace NovaPointLibrary.Solutions.Report
 
         private readonly List<DirectoryGroupUserEmails>? _listKnownGroups = new();
 
+        private const string _noGroupAssociated = "No group associated";
+
         private MembershipReport(ContextSolution context, MembershipReportParameters parameters)
         {
             _ctx = context;
@@ -176,11 +178,28 @@ namespace NovaPointLibrary.Solutions.Report
             {
                 await getMembershipUsers(record, membership);
             }
+            catch (Exception ex) when (IsNoAssociatedGroup(ex))
+            {
+                _ctx.Logger.UI(GetType().Name, $"No {membership} group associated to '{record.SiteUrl}'");
+                AddRecord(record.ReportUsers(membership, _noGroupAssociated, _noGroupAssociated));
+            }
             catch (Exception ex)
             {
                 _ctx.Logger.Error(GetType().Name, "Site", record.SiteUrl, ex);
                 AddRecord(record.ReportError(membership, ex));
             }
+        }
+
+        // A Site with no default Owners, Members or Visitors group is a valid state,
+        // common on classic Sites. CSOM only reports it by failing the query, so it is
+        // classified here instead of being recorded as an error.
+        private static bool IsNoAssociatedGroup(Exception ex)
+        {
+            if (ex is not ServerException) { return false; }
+
+            return ex.Message.Contains("AssociatedOwnerGroup", StringComparison.Ordinal)
+                || ex.Message.Contains("AssociatedMemberGroup", StringComparison.Ordinal)
+                || ex.Message.Contains("AssociatedVisitorGroup", StringComparison.Ordinal);
         }
 
         private async Task GetSiteCollectionAdminsAsync(MembershipReportRecord record, string membership)
