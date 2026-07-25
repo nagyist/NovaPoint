@@ -70,9 +70,6 @@ namespace NovaPointLibrary.Solutions.Report
         {
             _ctx.AppClient.IsCancelled();
 
-            var emptyGuid = Guid.Empty;
-            _ctx.Logger.Debug(GetType().Name, $"Blank Guid: {emptyGuid}");
-
             await foreach (var siteRecord in new SPOTenantSiteUrlsWithAccessCSOM(_ctx.Logger, _ctx.AppClient, _param.SiteAccParam).GetAsync())
             {
                 _ctx.AppClient.IsCancelled();
