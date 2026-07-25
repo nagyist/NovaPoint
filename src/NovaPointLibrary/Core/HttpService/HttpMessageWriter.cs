@@ -14,25 +14,39 @@ namespace NovaPointLibrary.Core.HttpService
         string content = "",
         Dictionary<string, string>? additionalHeaders = null)
     {
+        private const string _graphHost = "graph.microsoft.com";
+        private const string _spoHostSuffix = ".sharepoint.com";
+
+        // Parsed up front so an invalid URL fails at the call site that built it,
+        // and so the token audience is chosen from the host instead of a substring match.
+        private readonly Uri _uri = Uri.TryCreate(uriString, UriKind.Absolute, out Uri? uri)
+            ? uri
+            : throw new ArgumentException($"'{uriString}' is not a valid absolute URI.", nameof(uriString));
+
         internal async Task<HttpRequestMessage> GetMessageAsync()
         {
-            if (uriString.Contains("SharePoint.com", StringComparison.OrdinalIgnoreCase) && uriString.Contains("_api", StringComparison.OrdinalIgnoreCase))
+            if (_uri.Scheme != Uri.UriSchemeHttps)
             {
-                return GetMessage(await appInfo.GetSPOAccessToken(uriString));
+                throw new InvalidOperationException($"Refusing to send an access token over '{_uri.Scheme}' to '{_uri.Host}'.");
             }
-            else if (uriString.Contains("https://graph.microsoft.com", StringComparison.OrdinalIgnoreCase))
+
+            if (_uri.Host.Equals(_graphHost, StringComparison.OrdinalIgnoreCase))
             {
                 return GetMessage(await appInfo.GetGraphAccessToken());
             }
+            else if (_uri.Host.EndsWith(_spoHostSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                return GetMessage(await appInfo.GetSPOAccessToken(uriString));
+            }
             else
             {
-                throw new InvalidOperationException("This is neither a Graph or Rest API");
+                throw new InvalidOperationException($"Unsupported endpoint '{_uri.GetLeftPart(UriPartial.Authority)}'; expected Microsoft Graph or SharePoint Online.");
             }
         }
 
         private HttpRequestMessage GetMessage(string accessToken)
         {
-            HttpRequestMessage message = new(method, uriString);
+            HttpRequestMessage message = new(method, _uri);
 
             message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             message.Headers.Accept.Add(MediaTypeWithQualityHeaderValue.Parse(accept));
