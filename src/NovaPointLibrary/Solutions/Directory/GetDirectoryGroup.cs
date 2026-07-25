@@ -56,7 +56,7 @@ namespace NovaPointLibrary.Solutions.Directory
                 {
                     if (_param.GroupParam.IncludeOwners)
                     {
-                        var collOwners = await new DirectoryGroupUser(_ctx.Logger, _ctx.AppClient).GetOwnersAsync(Guid.Parse(groupRecord.Id));
+                        var collOwners = await new DirectoryGroupUser(_ctx.Logger, _ctx.AppClient).GetOwnersAsync(Guid.Parse(groupRecord.Id), "?$select=id,mail");
                         groupRecord.AddOwners(collOwners);
                     }
 

@@ -10,7 +10,8 @@ namespace NovaPointLibrary.Commands.Directory
     {
         private readonly ILogger _logger;
         private readonly IAppClient _appInfo;
-
+        
+        private const string _reportedUserProperties = "?$select=id,displayName,userPrincipalName";
 
         internal DirectoryGroupUser(ILogger logger, IAppClient appInfo)
         {
@@ -93,8 +94,8 @@ namespace NovaPointLibrary.Commands.Directory
                 else
                 {
                     IEnumerable<GraphUser> sgMembers;
-                    if (isOwner) { sgMembers = await GetOwnersAsync(sgId); }
-                    else { sgMembers = await GetMembersTransitiveAsync(sgId); }
+                    if (isOwner) { sgMembers = await GetOwnersAsync(sgId, _reportedUserProperties); }
+                    else { sgMembers = await GetMembersTransitiveAsync(sgId, _reportedUserProperties); }
 
 
                     if (!sgMembers.Any())
@@ -132,27 +133,27 @@ namespace NovaPointLibrary.Commands.Directory
             return directoryObject;
         }
 
-        internal async Task<IEnumerable<GraphUser>> GetOwnersAsync(Guid groupId)
+        internal async Task<IEnumerable<GraphUser>> GetOwnersAsync(Guid groupId, string optionalQuery = "")
         {
-            string endpointPath = $"/groups/{groupId}/owners?$select=*";
+            string endpointPath = $"/groups/{groupId}/owners" + optionalQuery;
 
             var collOwners = await new GraphAPIHandler(_logger, _appInfo).GetCollectionAsync<GraphUser>(endpointPath);
 
             return collOwners;
         }
 
-        internal async Task<IEnumerable<GraphUser>> GetMembersAsync(Guid groupId)
+        internal async Task<IEnumerable<GraphUser>> GetMembersAsync(Guid groupId, string optionalQuery = "")
         {
-            string endpointPath = $"/groups/{groupId}/members?$select=*";
+            string endpointPath = $"/groups/{groupId}/members" + optionalQuery;
 
             var collMembers = await new GraphAPIHandler(_logger, _appInfo).GetCollectionAsync<GraphUser>(endpointPath);
 
             return collMembers;
         }
 
-        internal async Task<IEnumerable<GraphUser>> GetMembersTransitiveAsync(Guid groupId)
+        internal async Task<IEnumerable<GraphUser>> GetMembersTransitiveAsync(Guid groupId, string optionalQuery = "")
         {
-            string endpointPath = $"/groups/{groupId}/transitiveMembers?$select=*";
+            string endpointPath = $"/groups/{groupId}/transitiveMembers" + optionalQuery;
 
             var collMembers = await new GraphAPIHandler(_logger, _appInfo).GetCollectionAsync<GraphUser>(endpointPath);
 

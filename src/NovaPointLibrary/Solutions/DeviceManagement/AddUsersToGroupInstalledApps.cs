@@ -240,7 +240,7 @@ public class AddUsersToGroupInstalledApps : ISolution
         var group = await new DirectoryGroup(_ctx.Logger, _ctx.AppClient).GetAsync(groupId.ToString(), "?$select=id,displayName");
         _groupNames.Add(groupId, group.DisplayName);
 
-        var collMembers = await new DirectoryGroupUser(_ctx.Logger, _ctx.AppClient).GetMembersTransitiveAsync(groupId);
+        var collMembers = await new DirectoryGroupUser(_ctx.Logger, _ctx.AppClient).GetMembersTransitiveAsync(groupId, "?$select=id");
         HashSet<string> members = collMembers
             .Where(m => m.Type == "user")
             .Select(m => m.Id)
