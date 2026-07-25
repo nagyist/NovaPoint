@@ -2,6 +2,7 @@
 using NovaPointLibrary.Core.Authentication;
 using NovaPointLibrary.Core.Logging;
 using System.Net.Http.Headers;
+using System.Text;
 
 namespace NovaPointLibrary.Core.HttpService
 {
@@ -61,10 +62,9 @@ namespace NovaPointLibrary.Core.HttpService
                 }
             }
 
-            if (method == HttpMethod.Post || method == HttpMethod.Put || method.Method == "PATCH")
+            if (method == HttpMethod.Post || method == HttpMethod.Put || method == HttpMethod.Patch)
             {
-                message.Content = new StringContent(content, System.Text.Encoding.UTF8);
-                message.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
+                message.Content = new StringContent(content, Encoding.UTF8, "application/json");
             }
 
             LogMessage(message);
