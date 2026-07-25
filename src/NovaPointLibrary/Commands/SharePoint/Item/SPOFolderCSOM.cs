@@ -118,6 +118,42 @@ namespace NovaPointLibrary.Commands.SharePoint.Item
             }
         }
 
+        internal async Task EnsureFolderPathExistAsync(string siteUrl, string folderServerRelativeUrl, string rootServerRelativeUrl)
+        {
+            _appInfo.IsCancelled();
+
+            if (!folderServerRelativeUrl.StartsWith("/"))
+            {
+                folderServerRelativeUrl = folderServerRelativeUrl.Insert(0, "/");
+            }
+            if (!rootServerRelativeUrl.StartsWith("/"))
+            {
+                rootServerRelativeUrl = rootServerRelativeUrl.Insert(0, "/");
+            }
+            rootServerRelativeUrl = rootServerRelativeUrl.TrimEnd('/');
+
+            if (!folderServerRelativeUrl.StartsWith(rootServerRelativeUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception($"Folder '{folderServerRelativeUrl}' is not located under '{rootServerRelativeUrl}'.");
+            }
+
+            _logger.Info(GetType().Name, $"Ensuring folder path exists '{folderServerRelativeUrl}' under '{rootServerRelativeUrl}'");
+
+            string remainingPath = folderServerRelativeUrl.Remove(0, rootServerRelativeUrl.Length);
+            string currentPath = rootServerRelativeUrl;
+
+            foreach (string folderName in remainingPath.Split('/', StringSplitOptions.RemoveEmptyEntries))
+            {
+                currentPath = string.Concat(currentPath, "/", folderName);
+
+                var folder = await GetFolderAsync(siteUrl, currentPath);
+                if (folder == null)
+                {
+                    await CreateAsync(siteUrl, currentPath);
+                }
+            }
+        }
+
         internal async Task<RESTStorageMetricsResponse> GetFolderStorageMetricAsync(string siteUrl, Folder folder)
         {
             _appInfo.IsCancelled();

@@ -131,10 +131,35 @@ namespace NovaPointLibrary.Solutions.Automation
                 var oDestinationFolder = await new SPOFolderCSOM(_ctx.Logger, _ctx.AppClient).GetFolderAsync(oDestinationWeb.Url, folderServerRelativeUrl);
                 if (oDestinationFolder == null)
                 {
-                    throw new($"Destination folder '{folderServerRelativeUrl}' does not exists.");
-                }
+                    if (!_param.CreateDestinationFolder)
+                    {
+                        throw new($"Destination folder '{folderServerRelativeUrl}' does not exists.");
+                    }
 
-                destinationServerRelativeUrl = oDestinationFolder.ServerRelativeUrl;
+                    if (_param.ReportMode)
+                    {
+                        _ctx.Logger.UI(GetType().Name, $"Destination folder '{folderServerRelativeUrl}' does not exist and would be created.");
+
+                        destinationServerRelativeUrl = folderServerRelativeUrl;
+                    }
+                    else
+                    {
+                        _ctx.Logger.UI(GetType().Name, "Creating destination folder.");
+                        await new SPOFolderCSOM(_ctx.Logger, _ctx.AppClient).EnsureFolderPathExistAsync(oDestinationWeb.Url, folderServerRelativeUrl, oDestinationList.RootFolder.ServerRelativeUrl);
+
+                        oDestinationFolder = await new SPOFolderCSOM(_ctx.Logger, _ctx.AppClient).GetFolderAsync(oDestinationWeb.Url, folderServerRelativeUrl);
+                        if (oDestinationFolder == null)
+                        {
+                            throw new($"Destination folder '{folderServerRelativeUrl}' could not be created.");
+                        }
+
+                        destinationServerRelativeUrl = oDestinationFolder.ServerRelativeUrl;
+                    }
+                }
+                else
+                {
+                    destinationServerRelativeUrl = oDestinationFolder.ServerRelativeUrl;
+                }
             }
 
             _ctx.Logger.UI(GetType().Name, "Getting Files from source location.");
@@ -355,6 +380,8 @@ namespace NovaPointLibrary.Solutions.Automation
         public bool IsMove { get; set; }
         internal bool SameWebCopyMoveOptimization { get; set; } = false;
 
+        public bool CreateDestinationFolder { get; set; } = false;
+
         public SPOAdminAccessParameters AdminAccess { get; set; }
 
         private string _sourceSiteUrl = string.Empty;
@@ -426,7 +453,8 @@ namespace NovaPointLibrary.Solutions.Automation
             SPOItemsParameters sourceItemsParam,
             string destinationSiteUrl,
             string destinationListTitle,
-            string destinationLibraryRelativeUrl)
+            string destinationLibraryRelativeUrl,
+            bool createDestinationFolder)
         {
             ReportMode = reportMode;
             IsMove = isMove;
@@ -440,6 +468,7 @@ namespace NovaPointLibrary.Solutions.Automation
             DestinationSiteUrl = destinationSiteUrl;
             DestinationListTitle = destinationListTitle;
             DestinationLibraryRelativeUrl = destinationLibraryRelativeUrl;
+            CreateDestinationFolder = createDestinationFolder;
         }
 
     }

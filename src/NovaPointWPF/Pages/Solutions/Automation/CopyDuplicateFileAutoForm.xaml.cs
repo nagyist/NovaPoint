@@ -23,6 +23,7 @@ namespace NovaPointWPF.Pages.Solutions.Automation
         public string DestinationSiteURL { get; set; } = string.Empty;
         public string DestinationListTitle { get; set; } = string.Empty;
         public string DestinationFolderServerRelativeUrl { get; set; } = string.Empty;
+        public bool CreateDestinationFolder { get; set; }
 
         public CopyDuplicateFileAutoForm()
         {
@@ -48,7 +49,8 @@ namespace NovaPointWPF.Pages.Solutions.Automation
                 ItemF.Parameters,
                 DestinationSiteURL,
                 DestinationListTitle,
-                DestinationFolderServerRelativeUrl);
+                DestinationFolderServerRelativeUrl,
+                CreateDestinationFolder);
 
             return parameters;
         }

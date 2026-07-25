@@ -163,6 +163,30 @@
                                 Text="{Binding DestinationFolderServerRelativeUrl, Mode=TwoWay}"
                                 Margin="0,12,0,0"/>
 
+                            <TextBlock
+                                Style="{DynamicResource TextBlockBody}"
+                                Text="Create the destination folder if it does not exist"
+                                Margin="0,16,0,0"/>
+
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Margin="0,12,0,0">
+
+                                <RadioButton
+                                    Style="{DynamicResource ToggleButtonSolutionForm}"
+                                    Content="No"
+                                    Width="120"
+                                    IsChecked="True"
+                                    Margin="0,0,8,0"/>
+
+                                <RadioButton
+                                    Style="{DynamicResource ToggleButtonSolutionForm}"
+                                    Content="Yes"
+                                    Width="120"
+                                    IsChecked="{Binding CreateDestinationFolder, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}"/>
+
+                            </StackPanel>
+
                         </StackPanel>
 
                     </Border>
