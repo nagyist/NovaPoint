@@ -23,6 +23,7 @@ namespace NovaPointLibrary.Commands.Utilities
         internal async Task<IEnumerable<T>> GetCollectionAsync<T>(string url)
         {
             List<T> results = [];
+            int pageCount = 1;
 
             var request = await GetObjectAsync<GraphtResultCollection<T>>(url);
 
@@ -34,12 +35,15 @@ namespace NovaPointLibrary.Commands.Utilities
                     _appInfo.IsCancelled();
 
                     request = await GetObjectAsync<GraphtResultCollection<T>>(request.NextLink);
+                    pageCount++;
                     if (request != null && request.Items.Any())
                     {
                         results.AddRange(request.Items);
                     }
                 }
             }
+
+            _logger.Info(GetType().Name, $"Retrieved {results.Count} item(s) in {pageCount} page(s) from '{url}'");
 
             return results;
         }

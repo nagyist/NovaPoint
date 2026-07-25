@@ -7,6 +7,8 @@ namespace NovaPointLibrary.Core.Logging
     {
         Action<LogInfo> UiAddLog { get; init; }
 
+        bool IncludeDebugLogs { get; init; }
+
         Task<ILogger> GetSubThreadLogger();
         void Info(string classMethod, string log);
         void Debug(string classMethod, string log);

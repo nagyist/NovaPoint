@@ -7,6 +7,8 @@ namespace NovaPointLibrary.Core.Logging
     {
         public Action<LogInfo> UiAddLog { get; init; }
 
+        public bool IncludeDebugLogs { get; init; } = true;
+
         private readonly ILogger _parentLogger;
         private readonly string _threadCode;
         private int _childThreadCounter = 0;
@@ -17,6 +19,7 @@ namespace NovaPointLibrary.Core.Logging
         {
             _parentLogger = parentLogger;
             UiAddLog = parentLogger.UiAddLog;
+            IncludeDebugLogs = parentLogger.IncludeDebugLogs;
             _threadCode = threadCode;
 
         }
@@ -45,6 +48,8 @@ namespace NovaPointLibrary.Core.Logging
 
         public void Debug(string classMethod, string log)
         {
+            if (!IncludeDebugLogs) { return; }
+
             SolutionLog logEntry = new("Debug", _threadCode, classMethod, log);
 
             WriteLog(logEntry);

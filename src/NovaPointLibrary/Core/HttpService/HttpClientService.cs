@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using static Microsoft.SharePoint.Client.ClientContextExtensions;
 using NovaPointLibrary.Core.Logging;
 
@@ -28,6 +29,7 @@ namespace NovaPointLibrary.Core.HttpService
 
                 HttpRequestMessage requestMessage = await messageWriter.GetMessageAsync();
                 HttpResponseMessage response;
+                Stopwatch stopwatch = Stopwatch.StartNew();
                 try
                 {
                     response = await _client.SendAsync(requestMessage, cancellationToken);
@@ -58,10 +60,15 @@ namespace NovaPointLibrary.Core.HttpService
                     throw;
                 }
 
+                stopwatch.Stop();
+
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
-                    logger.Info(_className, $"Successful response {responseContent}.");
+                    
+                    logger.Info(_className, $"Response {(int)response.StatusCode} in {stopwatch.ElapsedMilliseconds} ms, {responseContent.Length:N0} chars");
+                    logger.Debug(_className, $"Response content: {responseContent}");
+
                     return responseContent;
                 }
                 else if (response != null && (response.StatusCode == HttpStatusCode.TooManyRequests || response.StatusCode == HttpStatusCode.ServiceUnavailable))
