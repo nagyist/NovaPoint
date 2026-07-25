@@ -50,11 +50,12 @@ namespace NovaPointLibrary.Commands.SharePoint.Permission
                     _logger.Info(GetType().Name, $"No permissions found, skipping group");
                     continue;
                 }
-                // CHECK IF IT CAN BE REMOVED
-                else if (IsSystemGroup(role.Member.Title.ToString()) )
+                else if (DirectoryGroupUser.IsClaimPrincipal(role.Member.LoginName))
                 {
+                    var claimPrincipal = DirectoryGroupUser.GetClaimPrincipal(role.Member.Title);
+
                     SPORoleAssignmentUserRecord record = new(accessType, "NA", permissionLevels);
-                    yield return GetSystemGroup(record, "", role.Member.Title.ToString());
+                    yield return record.GetRecordWithUsers(claimPrincipal.AccountType, claimPrincipal.Users);
                 }
                 else if (role.Member.PrincipalType.ToString() == "User")
                 {
@@ -182,51 +183,6 @@ namespace NovaPointLibrary.Commands.SharePoint.Permission
             return record;
         }
 
-
-        internal static bool IsSystemGroup(string groupName)
-        {
-            if (groupName.ToString() == "Everyone"
-                || groupName.ToString() == "Everyone except external users"
-                || groupName.ToString() == "Global Administrator"
-                || groupName.ToString() == "SharePoint Administrator")
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        private SPORoleAssignmentUserRecord GetSystemGroup(SPORoleAssignmentUserRecord record, string accountType, string groupName)
-        {
-            _appInfo.IsCancelled();
-            _logger.Info(GetType().Name, $"Getting system group users");
-
-            string thisAccountType = accountType + groupName;
-
-            if (groupName.ToString() == "Everyone")
-            {
-                return record.GetRecordWithUsers(thisAccountType, "All internal and external users");
-            }
-            else if (groupName.ToString() == "Everyone except external users")
-            {
-                return record.GetRecordWithUsers(thisAccountType, "All internal users");
-            }
-            else if (groupName.ToString() == "Global Administrator")
-            {
-                return record.GetRecordWithUsers(thisAccountType, "Users with Global Admin role");
-            }
-            else if (groupName.ToString() == "SharePoint Administrator")
-            {
-                return record.GetRecordWithUsers(thisAccountType, "Users with SharePoint Admin role");
-            }
-            else
-            {
-                return record.GetRecordWithUsers(thisAccountType, "Unknown users on this group");
-            }
-
-        }
 
         private string GetPermissionLevels(RoleDefinitionBindingCollection roleDefinitionsCollection)
         {
