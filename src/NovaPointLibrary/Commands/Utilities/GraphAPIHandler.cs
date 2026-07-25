@@ -80,6 +80,17 @@ namespace NovaPointLibrary.Commands.Utilities
             return response;
         }
 
+        internal async Task<string> PostAsync(string apiEndpoint, string content)
+        {
+            _appInfo.IsCancelled();
+            _logger.Info(GetType().Name, $"POST '{apiEndpoint}' with content '{content}'");
+
+            HttpMessageWriter messageWriter = new(_logger, _appInfo, HttpMethod.Post, GetUriString(apiEndpoint), content: content);
+            string response = await HttpClientService.SendHttpRequestMessageAsync(_logger, messageWriter, _appInfo.CancelToken);
+
+            return response;
+        }
+
         internal async Task DeleteAsync(string apiEndpoint)
         {
             _appInfo.IsCancelled();

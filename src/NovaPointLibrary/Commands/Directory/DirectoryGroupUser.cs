@@ -147,6 +147,19 @@ namespace NovaPointLibrary.Commands.Directory
             return collMembers;
         }
 
+        // The directory object is referenced by URL, so the body cannot be built from an
+        // anonymous object; '@odata.id' is not a legal C# member name.
+        internal async Task AddMemberAsync(Guid groupId, string userId)
+        {
+            string endpointPath = $"/groups/{groupId}/members/$ref";
+            string content = $"{{\"@odata.id\":\"https://graph.microsoft.com/v1.0/directoryObjects/{userId}\"}}";
+
+            // Graph answers 204 No Content on success, so there is nothing to deserialize.
+            await new GraphAPIHandler(_logger, _appInfo).PostAsync(endpointPath, content);
+
+            _logger.Info(GetType().Name, $"Added user '{userId}' as member of group '{groupId}'");
+        }
+
         internal async Task<string> GetMembersTotalCountAsync(Guid groupId)
         {
             string endpointPath = $"/groups/{groupId}/transitiveMembers/$count";
