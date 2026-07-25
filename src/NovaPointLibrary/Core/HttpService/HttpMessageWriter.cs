@@ -14,6 +14,8 @@ namespace NovaPointLibrary.Core.HttpService
         string content = "",
         Dictionary<string, string>? additionalHeaders = null)
     {
+        private static readonly string _className = nameof(HttpMessageWriter);
+
         private const string _graphHost = "graph.microsoft.com";
         private const string _spoHostSuffix = ".sharepoint.com";
 
@@ -72,32 +74,12 @@ namespace NovaPointLibrary.Core.HttpService
 
         private void LogMessage(HttpRequestMessage request)
         {
-            //logger.Info(GetType().Name, $"=== HttpRequestMessage ===");
-            logger.Info(GetType().Name, $"Method: {request.Method}, Request URI: {request.RequestUri}");
+            logger.Info(_className, $"Method: {request.Method}, Request URI: {request.RequestUri}");
 
-            //logger.Debug(GetType().Name, $"Headers:");
-            //foreach (var header in request.Headers)
-            //{
-            //    logger.Debug(GetType().Name, $"{header.Key}: {header.Value}");
-            //}
-
-            //if (request.Content != null)
-            //{
-            //    logger.Debug(GetType().Name, $"Content Headers:");
-            //    foreach (var header in request.Content.Headers)
-            //    {
-            //        logger.Debug(GetType().Name, $"{header.Key}: {header.Value}");
-            //    }
-
-            //    // Read and log the content body (for non-GET requests)
-            //    if (request.Method != HttpMethod.Get)
-            //    {
-            //        var content = request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            //        logger.Debug(GetType().Name, $"Body: {content}");
-            //    }
-            //}
-
-            //logger.Debug(GetType().Name, $"==========================");
+            if (request.Content != null)
+            {
+                logger.Debug(_className, $"Body: {content}");
+            }
         }
     }
 }
