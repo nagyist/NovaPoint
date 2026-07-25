@@ -20,32 +20,43 @@ namespace NovaPointLibrary.Commands.Directory
 
         internal async Task<DirectoryGroupUserEmails> GetUsersAsync(Microsoft.SharePoint.Client.Principal secGroup, List<DirectoryGroupUserEmails>? listKnownGroups = null)
         {
-            if (IsSystemGroup(out DirectoryGroupUserEmails groupUserEmails, secGroup.Title))
+            DirectoryGroupUserEmails sgUserEmails;
+            try
             {
-                return groupUserEmails;
-            }
-            else
-            {
-                DirectoryGroupUserEmails sgUserEmails;
-                try
-                {
-                    bool isOwner = IsOwnerAndPurgeGroupId(out Guid sgGuid, secGroup.LoginName);
+                _logger.Debug(GetType().Name, $"Principal '{secGroup.Title}' LoginName '{secGroup.LoginName}'");
 
-                    sgUserEmails = await GetUsersAsync(secGroup.Title, sgGuid, isOwner, listKnownGroups);
-                }
-                catch (Exception ex)
+                if (!TryGetGroupId(secGroup.LoginName, out Guid sgGuid, out bool isOwner))
                 {
-                    sgUserEmails = new(Guid.Empty, secGroup.Title, false, $"{secGroup.Title} ({secGroup.LoginName})", ex.Message);
+                    return GetClaimPrincipal(secGroup.Title);
                 }
 
-                return sgUserEmails;
+                sgUserEmails = await GetUsersAsync(secGroup.Title, sgGuid, isOwner, listKnownGroups);
+            }
+            catch (Exception ex)
+            {
+                sgUserEmails = new(Guid.Empty, secGroup.Title, false, $"{secGroup.Title} ({secGroup.LoginName})", ex.Message);
             }
 
+            return sgUserEmails;
         }
 
-        private static bool IsOwnerAndPurgeGroupId(out Guid groupId, string secGroupId)
+        // Claims such as 'Everyone except external users' carry no directory object id,
+        // so there is nothing to look up in Entra ID.
+        internal static bool IsClaimPrincipal(string loginName)
         {
-            bool isOwners = false;
+            if (loginName.Contains("i:0#.f|membership|", StringComparison.OrdinalIgnoreCase)) { return false; }
+
+            return !TryGetGroupId(loginName, out _, out _);
+        }
+
+        internal static DirectoryGroupUserEmails GetClaimPrincipal(string title)
+        {
+            return DirectoryGroupUserEmails.GetClaimPrincipal(title, DirectoryWellKnownPrincipal.GetUsersDescription(title));
+        }
+
+        private static bool TryGetGroupId(string secGroupId, out Guid groupId, out bool isOwners)
+        {
+            isOwners = false;
             if (secGroupId.Contains("c:0t.c|tenant|", StringComparison.OrdinalIgnoreCase)) { secGroupId = secGroupId.Substring(secGroupId.IndexOf("c:0t.c|tenant|") + 14); }
             if (secGroupId.Contains("c:0u.c|tenant|", StringComparison.OrdinalIgnoreCase)) { secGroupId = secGroupId[(secGroupId.IndexOf("c:0u.c|tenant|") + 14)..]; }
             if (secGroupId.Contains("c:0o.c|federateddirectoryclaimprovider|", StringComparison.OrdinalIgnoreCase)) { secGroupId = secGroupId.Substring(secGroupId.IndexOf("c:0o.c|federateddirectoryclaimprovider|") + 39); }
@@ -55,9 +66,7 @@ namespace NovaPointLibrary.Commands.Directory
                 isOwners = true;
             }
 
-            groupId = Guid.Parse(secGroupId);
-
-            return isOwners;
+            return Guid.TryParse(secGroupId, out groupId);
         }
 
         internal async Task<DirectoryGroupUserEmails> GetUsersAsync(string sgTitle, Guid sgId, bool isOwner, List<DirectoryGroupUserEmails>? listKnownGroups = null)
@@ -73,21 +82,32 @@ namespace NovaPointLibrary.Commands.Directory
             DirectoryGroupUserEmails groupUserEmails;
             try
             {
-                IEnumerable<GraphUser> sgMembers;
-                if (isOwner) { sgMembers = await GetOwnersAsync(sgId); }
-                else { sgMembers = await GetMembersTransitiveAsync(sgId); }
+                var directoryObject = await GetDirectoryObjectAsync(sgId);
 
-
-                if (!sgMembers.Any())
+                if (directoryObject != null && directoryObject.IsDirectoryRole)
                 {
-                    groupUserEmails = new(sgId, sgTitle, isOwner, "Security group is empty");
+                    string roleName = string.IsNullOrWhiteSpace(directoryObject.DisplayName) ? sgTitle : directoryObject.DisplayName;
+
+                    groupUserEmails = DirectoryGroupUserEmails.GetDirectoryRole(sgId, roleName, isOwner, DirectoryWellKnownPrincipal.GetUsersDescription(roleName));
                 }
                 else
                 {
-                    string users = string.Join(" ", sgMembers.Where(com => com.Type.ToString() == "user").Select(com => com.UserPrincipalName).ToList());
-                    users += " " + string.Join(" ", sgMembers.Where(com => com.Type.ToString() == "SecurityGroup").Select(com => $"{com.DisplayName} ({com.Id})"));
+                    IEnumerable<GraphUser> sgMembers;
+                    if (isOwner) { sgMembers = await GetOwnersAsync(sgId); }
+                    else { sgMembers = await GetMembersTransitiveAsync(sgId); }
 
-                    groupUserEmails = new(sgId, sgTitle, isOwner, users);
+
+                    if (!sgMembers.Any())
+                    {
+                        groupUserEmails = new(sgId, sgTitle, isOwner, "Security group is empty");
+                    }
+                    else
+                    {
+                        string users = string.Join(" ", sgMembers.Where(com => com.Type.ToString() == "user").Select(com => com.UserPrincipalName).ToList());
+                        users += " " + string.Join(" ", sgMembers.Where(com => com.Type.ToString() == "SecurityGroup").Select(com => $"{com.DisplayName} ({com.Id})"));
+
+                        groupUserEmails = new(sgId, sgTitle, isOwner, users);
+                    }
                 }
             }
             catch (Exception ex)
@@ -100,24 +120,16 @@ namespace NovaPointLibrary.Commands.Directory
             return groupUserEmails;
         }
 
-        internal static bool IsSystemGroup(out DirectoryGroupUserEmails groupUserEmails, string groupTitle)
+        // Resolves what the id actually points at. A directory role and a security group
+        // are both surfaced by SharePoint as a 'SecurityGroup' principal, but only the
+        // latter exists under /groups.
+        internal async Task<GraphDirectoryObject> GetDirectoryObjectAsync(Guid objectId)
         {
-            groupUserEmails = new(Guid.Empty, groupTitle, false, groupTitle);
+            string endpointPath = $"/directoryObjects/{objectId}";
 
-            if (groupTitle.Equals("Everyone", StringComparison.OrdinalIgnoreCase)
-                || groupTitle.Equals("Everyone except external users", StringComparison.OrdinalIgnoreCase)
-                || groupTitle.Equals("Global Administrator", StringComparison.OrdinalIgnoreCase)
-                || groupTitle.Equals("SharePoint Administrator", StringComparison.OrdinalIgnoreCase)
-                || groupTitle.Equals("All Company Members", StringComparison.OrdinalIgnoreCase)
-                || groupTitle.Equals("All Users (windows)", StringComparison.OrdinalIgnoreCase)
-                || groupTitle.Equals("ReadOnlyAccessToTenantAdminSite", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            var directoryObject = await new GraphAPIHandler(_logger, _appInfo).GetObjectAsync<GraphDirectoryObject>(endpointPath);
+
+            return directoryObject;
         }
 
         internal async Task<IEnumerable<GraphUser>> GetOwnersAsync(Guid groupId)
